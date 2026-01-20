@@ -1,0 +1,71 @@
+// Headscale ACL Policy
+// This policy controls access between nodes and to internal networks
+{
+  // Groups define collections of users that can be referenced in ACLs
+  "groups": {
+{% for group_name, members in acl_groups.items() | default({}) %}
+    "group:{{ group_name }}": [{% for member in members %}"{{ member }}@{{ headscale_hostname }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
+
+{% else %}
+    "group:users": []
+{% endfor %}
+  },
+
+  // TagOwners control who can apply tags to nodes
+  "tagOwners": {
+{% for tag, owners in acl_tag_owners.items() | default({}) %}
+    "tag:{{ tag }}": [{% for owner in owners %}"{{ owner }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
+
+{% else %}
+    "tag:server": [],
+    "tag:client": [],
+    "tag:router": ["router@{{ headscale_hostname }}"]
+{% endfor %}
+  },
+
+  // Auto-approve subnet routes from the router
+  "autoApprovers": {
+    "routes": {
+{% for route in tailscale_routes | default([]) %}
+      "{{ route }}": ["tag:router"]{% if not loop.last %},{% endif %}
+
+{% endfor %}
+    }
+  },
+
+  // Access Control Lists define who can connect to what
+  "acls": [
+    // Allow all users to access their own devices
+    {
+      "action": "accept",
+      "src": ["*"],
+      "dst": ["*:*"]
+    },
+
+    // Allow VPN users to access internal networks
+    {
+      "action": "accept",
+      "src": ["autogroup:member"],
+      "dst": [
+{% for route in tailscale_routes | default([]) %}
+        "{{ route }}:*"{% if not loop.last %},{% endif %}
+
+{% endfor %}
+      ]
+    },
+
+    // DNS access for all nodes
+    {
+      "action": "accept",
+      "src": ["*"],
+      "dst": [
+        "{{ opnsense_ip }}:53",
+        "1.1.1.1:53",
+        "8.8.8.8:53"
+      ]
+    }
+  ],
+
+  // SSH configuration (optional)
+  "ssh": []
+}

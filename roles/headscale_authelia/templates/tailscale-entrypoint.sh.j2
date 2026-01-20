@@ -1,0 +1,27 @@
+#!/bin/sh
+# Custom entrypoint for Tailscale router container
+# Configures static routes for advertised subnets via macvlan gateway
+
+set -e
+
+echo "Configuring routing for subnet router..."
+
+# Advertised subnets (excluding local subnet)
+SUBNETS="{{ tailscale_routes | reject('search', tailscale_router_subnet | regex_replace('/\\d+$', '')) | join(' ') }}"
+GATEWAY="{{ tailscale_router_gateway }}"
+
+# Add static routes for each advertised subnet via macvlan interface
+for subnet in $SUBNETS; do
+    echo "  Adding route: $subnet via $GATEWAY dev eth1"
+    ip route add "$subnet" via "$GATEWAY" dev eth1 2>/dev/null || echo "  (route already exists)"
+done
+
+# Show final routing table
+echo ""
+echo "Routing table:"
+ip route show
+echo ""
+
+# Execute the original Tailscale entrypoint
+echo "Starting Tailscale..."
+exec /usr/local/bin/containerboot "$@"

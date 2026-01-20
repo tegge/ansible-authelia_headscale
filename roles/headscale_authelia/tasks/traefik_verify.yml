@@ -1,0 +1,104 @@
+---
+# Traefik Integration Verification
+# Handles both deployed Traefik (deploy_traefik=true) and external Traefik (deploy_traefik=false)
+- name: Check if external Traefik network exists
+  community.docker.docker_network_info:
+    name: "{{ traefik_network }}"
+  register: traefik_network_info
+  failed_when: false
+  when: not deploy_traefik | default(false) | bool
+
+- name: Fail if external Traefik network does not exist
+  ansible.builtin.fail:
+    msg: |
+      Traefik network '{{ traefik_network }}' NOT FOUND
+      
+      This network is required for Headscale and Authelia to connect to your existing Traefik instance.
+      
+      Please ensure:
+      1. Your Traefik stack is running
+      2. The network '{{ traefik_network }}' exists
+      3. Traefik has Docker provider enabled
+      
+      Alternatively, set deploy_traefik: true to deploy Traefik with this stack.
+      
+      Configure in: group_vars/all/vars.yml
+        traefik_network: "{{ traefik_network }}"
+  when:
+    - not deploy_traefik | default(false) | bool
+    - not traefik_network_info.exists
+
+- name: Get external Traefik container IP
+  ansible.builtin.shell:
+    cmd: "docker inspect traefik -f '{{'{{'}}.NetworkSettings.Networks.{{ traefik_network }}.IPAddress{{'}}'}}'"
+  register: traefik_ip_result
+  changed_when: false
+  failed_when: false
+  when: not deploy_traefik | default(false) | bool
+
+- name: Set Traefik container IP variable (external mode)
+  ansible.builtin.set_fact:
+    traefik_container_ip: "{{ traefik_ip_result.stdout | trim }}"
+  when:
+    - not deploy_traefik | default(false) | bool
+    - traefik_ip_result.rc == 0
+    - traefik_ip_result.stdout | trim | length > 0
+
+- name: Display external Traefik integration status
+  ansible.builtin.debug:
+    msg:
+      - "Using EXTERNAL Traefik instance"
+      - "Traefik network: {{ traefik_network }}"
+      - "Certificate resolver: {{ traefik_certresolver }}"
+      - "{% if traefik_container_ip is defined %}Traefik container IP: {{ traefik_container_ip }}{% endif %}"
+      - ""
+      - "Services will be accessible at:"
+      - "  - https://{{ headscale_hostname }} (Headscale)"
+      - "  - https://{{ authelia_hostname }} (Authelia)"
+  when: not deploy_traefik | default(false) | bool
+
+#==============================================================================
+# DEPLOYED TRAEFIK MODE (deploy_traefik=true)
+#==============================================================================
+
+- name: Display deployed Traefik configuration
+  ansible.builtin.debug:
+    msg:
+      - "Deploying Traefik WITH this stack"
+      - "Traefik image: {{ traefik_image }}"
+      - "Traefik network: {{ traefik_network }} (will be created)"
+      - "Certificate resolver: {{ traefik_certresolver }}"
+      - "ACME email: {{ traefik_acme_email }}"
+      - "{% if traefik_acme_staging %}WARNING: Using Let's Encrypt STAGING server{% endif %}"
+      - ""
+      - "Ports:"
+      - "  - HTTP:  {{ traefik_http_port }}"
+      - "  - HTTPS: {{ traefik_https_port }}"
+      - ""
+      - "Services will be accessible at:"
+      - "  - https://{{ headscale_hostname }} (Headscale)"
+      - "  - https://{{ authelia_hostname }} (Authelia)"
+  when: deploy_traefik | default(false) | bool
+
+- name: Create Traefik directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: "0755"
+  loop:
+    - "{{ volumes_dir }}/traefik"
+    - "{{ volumes_dir }}/traefik/acme"
+  when: deploy_traefik | default(false) | bool
+
+- name: Create empty acme.json with correct permissions
+  ansible.builtin.file:
+    path: "{{ volumes_dir }}/traefik/acme/acme.json"
+    state: touch
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: "0600"
+    modification_time: preserve
+    access_time: preserve
+  when: deploy_traefik | default(false) | bool

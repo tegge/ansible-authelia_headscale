@@ -1,0 +1,39 @@
+---
+# Example Ansible Vault file for Headscale + Authelia deployment
+# Copy this to vault.yml and encrypt with: ansible-vault encrypt vault.yml
+
+# Cloudflare Tunnel Configuration
+# Create tunnel: cloudflared tunnel create headscale-tunnel
+VAULT_TUNNEL_UUID: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Contents of ~/.cloudflared/<tunnel-uuid>.json after tunnel creation
+VAULT_CLOUDFLARED_CREDENTIALS: |
+  {
+    "AccountTag": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "TunnelSecret": "base64-encoded-tunnel-secret-here",
+    "TunnelID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
+
+# Contents of ~/.cloudflared/cert.pem - REQUIRED for tunnel operation
+VAULT_CLOUDFLARED_CERT: |
+  -----BEGIN CERTIFICATE-----
+  PASTE_YOUR_CERT_PEM_CONTENT_HERE
+  -----END CERTIFICATE-----
+  -----BEGIN PRIVATE KEY-----
+  PASTE_YOUR_PRIVATE_KEY_HERE
+  -----END PRIVATE KEY-----
+
+# Authelia Secrets (use openssl rand -hex 32 to generate)
+VAULT_JWT_SECRET: "change_me_to_32_random_characters"
+VAULT_SESSION_SECRET: "change_me_to_32_random_characters"
+VAULT_ENC_KEY: "change_me_to_32_random_characters"
+VAULT_STORAGE_ENC_KEY: "exactly_32_characters_needed!!!"  # MUST be exactly 32 characters
+VAULT_OIDC_HMAC_SECRET: "change_me_to_32_random_characters"
+
+# OIDC Client Secret for Headscale (use openssl rand -hex 32)
+VAULT_OIDC_CLIENT_SECRET: "change_me_to_secure_random_string"
+
+# User password hashes - Generate with:
+# docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password "YourPassword"
+VAULT_HASHED_PASS_FLO: "$argon2id$v=19$m=65536,t=3,p=4$CHANGE_ME"
+VAULT_HASHED_PASS_KATI: "$argon2id$v=19$m=65536,t=3,p=4$CHANGE_ME"

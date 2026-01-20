@@ -1,0 +1,107 @@
+---
+# Docker Compose Deployment
+
+- name: Check if router pre-auth key file exists
+  ansible.builtin.stat:
+    path: "{{ volumes_dir }}/router_preauth_key"
+  register: preauth_key_file
+
+- name: Build list of services for initial deployment
+  ansible.builtin.set_fact:
+    initial_services: "{{ ['traefik'] if deploy_traefik | default(false) | bool else [] }} + ['headscale', 'authelia']"
+
+- name: Deploy core services first (for key generation)
+  community.docker.docker_compose_v2:
+    project_src: "{{ base_data_dir }}/{{ stack_name }}"
+    files:
+      - "{{ stack_name }}.yml"
+    services: "{{ initial_services }}"
+    pull: always
+    state: present
+  when: not preauth_key_file.stat.exists
+
+- name: Wait for Headscale to be ready (for key generation)
+  ansible.builtin.pause:
+    seconds: 10
+  when: not preauth_key_file.stat.exists
+
+- name: Create router user in Headscale
+  ansible.builtin.shell:
+    cmd: "docker exec headscale_{{ stack_name }} headscale users create router"
+  register: create_router
+  changed_when: "'User created' in create_router.stdout"
+  failed_when:
+    - create_router.rc != 0
+    - "'UNIQUE constraint failed' not in create_router.stderr"
+    - "'already exists' not in create_router.stderr"
+  when: not preauth_key_file.stat.exists
+
+- name: Get router user ID
+  ansible.builtin.shell:
+    cmd: "docker exec headscale_{{ stack_name }} headscale users list -o json | jq -r '.[] | select(.name==\"router\") | .id'"
+  register: router_user_id
+  changed_when: false
+  when: not preauth_key_file.stat.exists
+
+- name: Generate pre-auth key for router with tag
+  ansible.builtin.shell:
+    cmd: "docker exec headscale_{{ stack_name }} headscale preauthkeys create --user {{ router_user_id.stdout }} --reusable --expiration 365d --tags tag:router"
+  register: preauth_key_output
+  when: not preauth_key_file.stat.exists
+
+- name: Store pre-auth key persistently
+  ansible.builtin.copy:
+    content: "{{ preauth_key_output.stdout_lines[-1] }}"
+    dest: "{{ volumes_dir }}/router_preauth_key"
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: "0400"
+  when: not preauth_key_file.stat.exists
+
+- name: Read pre-auth key from file
+  ansible.builtin.slurp:
+    src: "{{ volumes_dir }}/router_preauth_key"
+  register: preauth_key_content
+
+- name: Set pre-auth key fact
+  ansible.builtin.set_fact:
+    router_preauth_key: "{{ preauth_key_content.content | b64decode | trim }}"
+
+- name: Create .env file with pre-auth key
+  ansible.builtin.copy:
+    content: "TS_AUTHKEY={{ router_preauth_key }}\n"
+    dest: "{{ base_data_dir }}/{{ stack_name }}/.env"
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: "0600"
+
+- name: Deploy or update containers with Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ base_data_dir }}/{{ stack_name }}"
+    files:
+      - "{{ stack_name }}.yml"
+    pull: always
+    state: present
+    recreate: always
+    wait: true
+    wait_timeout: 120
+  register: compose_res
+
+- name: Assert core services running
+  ansible.builtin.assert:
+    that:
+      - "'headscale' in (compose_res.containers | map(attribute='Service'))"
+      - "'authelia' in (compose_res.containers | map(attribute='Service'))"
+      - "'tailscale-router' in (compose_res.containers | map(attribute='Service'))"
+      - (compose_res.containers | selectattr('Service', 'equalto', 'headscale') | first).State == 'running'
+      - (compose_res.containers | selectattr('Service', 'equalto', 'authelia') | first).State == 'running'
+      - (compose_res.containers | selectattr('Service', 'equalto', 'tailscale-router') | first).State == 'running'
+    fail_msg: "One or more core containers are not running after deploy"
+
+- name: Assert Traefik service running (when deployed)
+  ansible.builtin.assert:
+    that:
+      - "'traefik' in (compose_res.containers | map(attribute='Service'))"
+      - (compose_res.containers | selectattr('Service', 'equalto', 'traefik') | first).State == 'running'
+    fail_msg: "Traefik container is not running after deploy"
+  when: deploy_traefik | default(false) | bool

@@ -1,0 +1,45 @@
+---
+# Post-Deployment Tasks
+
+- name: Check if deployment made changes
+  ansible.builtin.set_fact:
+    deployment_changed: "{{ compose_res.changed | default(false) }}"
+
+- name: Display deployment information (only if changes were made)
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "  Deployment Complete - Changes Applied"
+      - "=========================================="
+      - ""
+      - "Services:"
+      - "  - https://{{ authelia_hostname }} (Authelia)"
+      - "  - https://{{ headscale_hostname }} (Headscale)"
+      - ""
+      - "Traefik Mode: {% if deploy_traefik | default(false) | bool %}DEPLOYED with stack{% else %}EXTERNAL ({{ traefik_network }}){% endif %}"
+      - "Certificate Resolver: {{ traefik_certresolver }}"
+      - "Stack Name: {{ stack_name }}"
+      - ""
+      - "Next Steps:"
+      - ""
+      - "1. Configure DNS A records pointing to your server:"
+      - "   {{ authelia_hostname }} -> YOUR_SERVER_IP"
+      - "   {{ headscale_hostname }} -> YOUR_SERVER_IP"
+      - ""
+      - "2. Configure port forwarding if behind NAT:"
+{% if deploy_traefik | default(false) | bool %}
+      - "   WAN:{{ traefik_http_port }}/TCP -> SERVER_IP:{{ traefik_http_port }} (HTTP)"
+      - "   WAN:{{ traefik_https_port }}/TCP -> SERVER_IP:{{ traefik_https_port }} (HTTPS)"
+{% else %}
+      - "   WAN:443/TCP -> SERVER_IP:443 (HTTPS)"
+{% endif %}
+      - "   WAN:3478/UDP -> SERVER_IP:3478 (DERP/STUN)"
+      - ""
+      - "3. Enroll 2FA: https://{{ authelia_hostname }}"
+      - ""
+      - "4. Connect VPN Clients:"
+      - "   tailscale login --login-server=https://{{ headscale_hostname }}"
+      - "   tailscale up --accept-routes"
+      - ""
+      - "=========================================="
+  when: deployment_changed | bool

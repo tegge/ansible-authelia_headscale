@@ -1,0 +1,159 @@
+server:
+  address: 'tcp://0.0.0.0:9091'
+  endpoints:
+    enable_pprof: false
+    enable_expvars: false
+
+log:
+  level: info
+  format: text
+
+# TOTP Configuration for 2FA
+totp:
+  disable: false
+  issuer: "{{ authelia_hostname }}"
+  algorithm: sha256
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+
+# WebAuthn configuration (optional, for hardware keys)
+webauthn:
+  disable: true
+
+# Identity validation for password resets
+identity_validation:
+  reset_password:
+    jwt_secret: "{{ authelia_jwt_secret }}"
+
+# Session management
+session:
+  secret: "{{ authelia_session_secret }}"
+  name: authelia_session
+  same_site: lax
+  inactivity: 5m
+  expiration: 1h
+  remember_me: 1M
+  cookies:
+    - domain: "{{ authelia_cookie_domain | default(authelia_hostname | regex_replace('^[^.]+\\.', '')) }}"
+      authelia_url: "https://{{ authelia_hostname }}"
+      default_redirection_url: "https://{{ headscale_hostname }}"
+
+# Storage backend
+storage:
+  local:
+    path: /config/db.sqlite3
+  encryption_key: "{{ authelia_storage_encryption_key }}"
+
+# Notification system
+notifier:
+  filesystem:
+    filename: /config/notifications.log
+
+# Authentication backend
+authentication_backend:
+  password_reset:
+    disable: false
+  file:
+    path: /config/users.yml
+    password:
+      algorithm: argon2
+      argon2:
+        variant: argon2id
+        iterations: 3
+        memory: 65536
+        parallelism: 4
+        key_length: 32
+        salt_length: 16
+
+# OIDC Identity Provider Configuration
+identity_providers:
+  oidc:
+    hmac_secret: "{{ authelia_oidc_hmac_secret }}"
+    id_token_lifespan: 1h
+    access_token_lifespan: 1h
+    refresh_token_lifespan: 90d
+    authorize_code_lifespan: 1m
+    enforce_pkce: public_clients_only
+    
+    # Enable CORS for OIDC endpoints
+    cors:
+      endpoints:
+        - authorization
+        - token
+        - revocation
+        - introspection
+        - userinfo
+      allowed_origins_from_client_redirect_uris: true
+    
+    # Claims policies for Headscale compatibility
+    claims_policies:
+      default:
+        id_token:
+          - groups
+          - email
+          - email_verified
+          - preferred_username
+          - name
+    
+    # JWT key for signing tokens
+    jwks:
+      - algorithm: RS256
+        use: sig
+        key: |
+          {{ oidc_private_key_content.content | b64decode | indent(10) }}
+    
+    # Headscale client configuration
+    clients:
+      - client_id: "{{ headscale_oidc_client_id }}"
+        client_name: "Headscale VPN"
+        client_secret: "{{ headscale_oidc_client_secret_hash }}"
+        public: false
+        claims_policy: default
+        authorization_policy: two_factor
+        
+        # PKCE configuration matching Headscale
+        require_pkce: true
+        pkce_challenge_method: S256
+        
+        # Redirect URI for OIDC callback
+        redirect_uris:
+          - "https://{{ headscale_hostname }}/oidc/callback"
+        
+        # Required scopes for Headscale
+        scopes:
+          - openid
+          - profile
+          - email
+          - groups
+          - offline_access
+        
+        # Grant types and response types
+        grant_types:
+          - authorization_code
+          - refresh_token
+        response_types:
+          - code
+        
+        # Token endpoint authentication
+        token_endpoint_auth_method: client_secret_post
+        userinfo_signed_response_alg: none
+
+# Access Control Rules
+access_control:
+  default_policy: deny
+  rules:
+    # Allow Authelia portal access
+    - domain: "{{ authelia_hostname }}"
+      policy: bypass
+    
+    # Require 2FA for Headscale OIDC endpoints
+    - domain: "{{ headscale_hostname }}"
+      policy: two_factor
+{% if authelia_allowed_groups is defined %}
+      subject:
+{% for group in authelia_allowed_groups %}
+        - "group:{{ group }}"
+{% endfor %}
+{% endif %}

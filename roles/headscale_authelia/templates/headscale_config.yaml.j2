@@ -1,0 +1,97 @@
+# Headscale Configuration
+# Coordination server for Tailscale clients with OIDC authentication
+
+# Public server URL where Headscale is accessible
+server_url: "https://{{ headscale_hostname }}"
+
+# Network configuration
+listen_addr: "0.0.0.0:{{ headscale_http_port }}"
+metrics_listen_addr: "127.0.0.1:9090"
+grpc_listen_addr: "0.0.0.0:{{ headscale_grpc_port }}"
+grpc_allow_insecure: false
+
+# Database settings
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+    write_ahead_log: true
+
+# Noise protocol key for client communication
+noise:
+  private_key_path: /etc/headscale/noise_private.key
+
+# IP allocation for Tailscale nodes
+prefixes:
+  v4: 100.64.0.0/10
+  v6: fd7a:115c:a1e0::/48
+  allocation: sequential
+
+# DERP relay servers for NAT traversal
+derp:
+  server:
+    enabled: false
+    region_id: 999
+    region_code: "headscale"
+    region_name: "Headscale Embedded DERP"
+  urls:
+    - https://controlplane.tailscale.com/derpmap/default
+  auto_update_enabled: true
+  update_frequency: 24h
+
+# DNS configuration for MagicDNS
+dns:
+  override_local_dns: true
+  magic_dns: true
+  base_domain: "{{ headscale_base_domain }}"
+  nameservers:
+    global:
+      - 1.1.1.1
+      - 8.8.8.8
+{% if dns_split_domains is defined %}
+    split:
+{% for domain, nameservers in dns_split_domains.items() %}
+      "{{ domain }}":
+{% for ns in nameservers %}
+        - {{ ns }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+# ACL Policy configuration
+policy:
+  mode: file
+  path: "/etc/headscale/acl.hujson"
+
+# OIDC Authentication with Authelia
+oidc:
+  only_start_if_oidc_is_available: false
+  issuer: "https://{{ authelia_hostname }}"
+  client_id: "{{ headscale_oidc_client_id }}"
+  client_secret: "{{ headscale_oidc_client_secret }}"
+  scope: ["openid", "profile", "email", "groups"]
+  
+  # PKCE for enhanced security
+  pkce:
+    enabled: true
+    method: S256
+  
+  # Optional: Restrict access to specific domains/users
+  allowed_domains: []
+  allowed_users: []
+{% if headscale_allowed_groups is defined %}
+  allowed_groups:
+{% for group in headscale_allowed_groups %}
+    - "{{ group }}"
+{% endfor %}
+{% else %}
+  allowed_groups: []
+{% endif %}
+
+# Logging configuration
+log:
+  level: info
+  format: text
+
+# Timeout settings
+ephemeral_node_inactivity_timeout: 30m

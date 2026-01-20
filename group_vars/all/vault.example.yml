@@ -1,0 +1,42 @@
+---
+# Headscale + Authelia Stack - Vault Secrets
+# This file contains sensitive values that MUST be encrypted
+#
+# To create an encrypted vault file:
+#   ansible-vault create group_vars/all/vault.yml
+#
+# To edit an existing vault file:
+#   ansible-vault edit group_vars/all/vault.yml
+
+#==============================================================================
+# AUTHELIA SECRETS
+#==============================================================================
+
+# Generate with: openssl rand -hex 32
+vault_jwt_secret: "CHANGE_ME_32_random_hex_characters"
+vault_session_secret: "CHANGE_ME_32_random_hex_characters"
+vault_oidc_hmac_secret: "CHANGE_ME_32_random_hex_characters"
+
+# MUST be exactly 32 characters (not hex, actual characters)
+vault_storage_encryption_key: "exactly_32_characters_needed!!!"
+
+#==============================================================================
+# OIDC CLIENT SECRET
+#==============================================================================
+
+# Plain text secret for Headscale config
+# Generate with: openssl rand -hex 32
+vault_oidc_client_secret: "CHANGE_ME_secure_random_string"
+
+# Hashed secret for Authelia config
+# Generate with: docker run --rm authelia/authelia:latest authelia crypto hash generate pbkdf2 --password "YOUR_PLAIN_SECRET"
+vault_oidc_client_secret_hash: "$pbkdf2-sha512$310000$CHANGE_ME"
+
+#==============================================================================
+# USER PASSWORD HASHES
+#==============================================================================
+
+# Generate with:
+# docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password "YourPassword"
+
+vault_hashed_pass_admin: "$argon2id$v=19$m=65536,t=3,p=4$CHANGE_ME"

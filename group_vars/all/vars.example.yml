@@ -1,0 +1,150 @@
+---
+# Headscale + Authelia Stack Configuration
+# Copy to vars.yml and customize for your environment
+# Sensitive values should be in an encrypted vault.yml
+
+#==============================================================================
+# DOMAIN CONFIGURATION (Required)
+#==============================================================================
+
+# Public hostnames for services
+headscale_hostname: "headscale.example.com"
+authelia_hostname: "auth.example.com"
+
+# Base domain for Headscale MagicDNS
+headscale_base_domain: "hs.example.com"
+
+#==============================================================================
+# TRAEFIK CONFIGURATION
+#==============================================================================
+
+# Deploy Traefik as part of this stack (true) or use existing instance (false)
+# - true:  Traefik container is deployed with the stack
+# - false: Uses existing external Traefik network (default)
+deploy_traefik: false
+
+# Traefik network name
+# - When deploy_traefik=true: network is created by this stack
+# - When deploy_traefik=false: must be an existing external network
+traefik_network: "traefik_default"
+
+# Traefik certificate resolver name
+traefik_certresolver: "letsencrypt"
+
+#------------------------------------------------------------------------------
+# Traefik Container Settings (only used when deploy_traefik=true)
+#------------------------------------------------------------------------------
+
+# traefik_image: "traefik:v3.2"
+# traefik_container_name: "traefik"
+# traefik_acme_email: "admin@example.com"
+# traefik_acme_staging: false          # Use Let's Encrypt staging (for testing)
+# traefik_http_port: 80
+# traefik_https_port: 443
+# traefik_dashboard_enabled: false
+# traefik_log_level: "INFO"
+
+#==============================================================================
+# STACK CONFIGURATION
+#==============================================================================
+
+stack_name: "headscale-authelia"
+stack_user: "hsauthelia"
+base_data_dir: "/data"
+
+#==============================================================================
+# NETWORK CONFIGURATION
+#==============================================================================
+
+# Gateway/DNS server IP
+opnsense_ip: "192.168.1.1"
+
+# Tailscale router configuration
+tailscale_routes:
+  - "192.168.1.0/24"
+  - "192.168.2.0/24"
+
+tailscale_router_ip: "192.168.1.222"
+tailscale_router_subnet: "192.168.1.0/24"
+tailscale_router_gateway: "192.168.1.1"
+
+# Docker host physical interface for macvlan
+docker_host_interface: "eth0"
+
+#==============================================================================
+# OIDC CONFIGURATION
+#==============================================================================
+
+headscale_oidc_client_id: "headscale-client"
+
+# Groups allowed to use Headscale VPN
+headscale_allowed_groups:
+  - "users"
+
+# Groups allowed for Authelia access control
+authelia_allowed_groups:
+  - "users"
+
+#==============================================================================
+# USER DEFINITIONS
+#==============================================================================
+
+# Define users with their hashed passwords
+# Generate hash: docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password "YourPassword"
+authelia_users:
+  - username: "admin"
+    displayname: "Administrator"
+    password: "{{ vault_hashed_pass_admin }}"
+    email: "admin@example.com"
+    groups:
+      - "users"
+      - "admins"
+
+#==============================================================================
+# ACL CONFIGURATION
+#==============================================================================
+
+# Define user groups for ACLs
+acl_groups:
+  users:
+    - "admin"
+  admins:
+    - "admin"
+
+# Tag owners
+acl_tag_owners:
+  server:
+    - "group:admins"
+  client:
+    - "group:users"
+  router:
+    - "router"
+
+#==============================================================================
+# DNS SPLIT CONFIGURATION (Optional)
+#==============================================================================
+
+# Split DNS for internal domains
+# dns_split_domains:
+#   "internal.lan":
+#     - "192.168.1.1"
+
+#==============================================================================
+# SECRETS (Store in vault.yml)
+#==============================================================================
+
+# Reference secrets from vault
+authelia_jwt_secret: "{{ vault_jwt_secret }}"
+authelia_session_secret: "{{ vault_session_secret }}"
+authelia_storage_encryption_key: "{{ vault_storage_encryption_key }}"
+authelia_oidc_hmac_secret: "{{ vault_oidc_hmac_secret }}"
+headscale_oidc_client_secret: "{{ vault_oidc_client_secret }}"
+headscale_oidc_client_secret_hash: "{{ vault_oidc_client_secret_hash }}"
+
+#==============================================================================
+# SAFETY CONTROLS
+#==============================================================================
+
+# Set to true to wipe all data and start fresh
+# WARNING: Deletes databases, keys, certificates, and registered nodes
+force_wipe_volumes: false

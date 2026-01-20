@@ -1,0 +1,35 @@
+---
+# Headscale + Authelia Stack - Handlers
+
+- name: Restart traefik
+  community.docker.docker_container:
+    name: "{{ traefik_container_name }}"
+    state: started
+    restart: true
+  when: deploy_traefik | default(false) | bool
+
+- name: Restart headscale
+  community.docker.docker_container:
+    name: "headscale_{{ stack_name }}"
+    state: started
+    restart: true
+
+- name: Restart authelia
+  community.docker.docker_container:
+    name: "authelia_{{ stack_name }}"
+    state: started
+    restart: true
+
+- name: Restart tailscale-router
+  community.docker.docker_container:
+    name: "tailscale-router_{{ stack_name }}"
+    state: started
+    restart: true
+
+- name: Recreate stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ base_data_dir }}/{{ stack_name }}"
+    files:
+      - "{{ stack_name }}.yml"
+    state: present
+    recreate: always

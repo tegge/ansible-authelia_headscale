@@ -1,0 +1,20 @@
+---
+# Ansible Galaxy Requirements
+# Install with: ansible-galaxy install -r requirements.yml
+
+collections:
+  # Docker orchestration for container/compose management
+  - name: community.docker
+    version: ">=3.4.0"
+
+  # Crypto modules for key generation and ACME
+  - name: community.crypto
+    version: ">=2.14.0"
+
+  # General utilities
+  - name: community.general
+    version: ">=7.0.0"
+
+  # POSIX modules for sysctl
+  - name: ansible.posix
+    version: ">=1.5.0"

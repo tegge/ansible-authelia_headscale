@@ -1,0 +1,62 @@
+# Ansible
+*.retry
+inventory
+!inventories/example/inventory.yml
+
+# Vault files (encrypted secrets)
+vault.yml
+**/vault.yml
+!**/*vault.example.yml
+
+# Environment-specific files
+group_vars/*/vars.yml
+group_vars/headscale_prom.yml
+host_vars/
+
+# Old structure files (to be removed after migration)
+deploy_headscale_authelia.yml
+verify_traefik.yml
+/templates/
+scripts/
+roles/acme_issue/
+.issue_id_tracker
+pasted_from_chat.md
+requirements.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Docker
+.env

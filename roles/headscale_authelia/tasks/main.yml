@@ -1,0 +1,23 @@
+---
+# Headscale + Authelia Stack - Main Tasks
+
+- name: Include prerequisite tasks
+  ansible.builtin.include_tasks: prerequisites.yml
+
+- name: Include Traefik verification tasks
+  ansible.builtin.include_tasks: traefik_verify.yml
+
+- name: Include volume management tasks
+  ansible.builtin.include_tasks: volumes.yml
+
+- name: Include Authelia configuration tasks
+  ansible.builtin.include_tasks: authelia_config.yml
+
+- name: Include Headscale configuration tasks
+  ansible.builtin.include_tasks: headscale_config.yml
+
+- name: Include deployment tasks
+  ansible.builtin.include_tasks: deploy.yml
+
+- name: Include post-deployment tasks
+  ansible.builtin.include_tasks: post_deploy.yml

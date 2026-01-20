@@ -1,0 +1,31 @@
+---
+# Headscale + Authelia Stack Deployment
+# Main entry point for deploying the VPN stack
+
+- name: Deploy Headscale + Authelia stack
+  hosts: headscale_servers
+  become: true
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - headscale_hostname is defined
+          - authelia_hostname is defined
+          - authelia_jwt_secret is defined
+          - authelia_session_secret is defined
+          - authelia_storage_encryption_key is defined
+          - authelia_storage_encryption_key | length == 32
+          - headscale_oidc_client_secret is defined
+          - authelia_users | length > 0
+        fail_msg: >
+          Required variables are missing or invalid. Please check:
+          - headscale_hostname, authelia_hostname (domain names)
+          - authelia_jwt_secret, authelia_session_secret (32+ chars)
+          - authelia_storage_encryption_key (exactly 32 chars)
+          - headscale_oidc_client_secret
+          - authelia_users (at least one user defined)
+
+  roles:
+    - role: headscale_authelia
+      register: deployment_result
