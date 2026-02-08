@@ -3,7 +3,7 @@
 # Main entry point for deploying the VPN stack
 
 - name: Deploy Headscale + Authelia stack
-  hosts: headscale_servers
+  hosts: docker_host
   become: true
 
   pre_tasks:
@@ -28,4 +28,3 @@
 
   roles:
     - role: headscale_authelia
-      register: deployment_result

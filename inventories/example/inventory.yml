@@ -4,10 +4,10 @@
 
 all:
   children:
-    headscale_servers:
+    docker_hosts:
       hosts:
         # Replace with your server hostname or IP
-        headscale-server:
+        docker_host:
           ansible_host: 192.168.1.100
           ansible_user: ansible
           ansible_python_interpreter: /usr/bin/python3
