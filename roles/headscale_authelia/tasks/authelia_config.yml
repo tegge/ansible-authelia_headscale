@@ -3,70 +3,70 @@
 
 - name: Check for existing ACME account key
   ansible.builtin.stat:
-    path: "{{ acme_account_key_path }}"
-  register: acme_key_stat
+    path: "{{ headscale_authelia_acme_account_key_path }}"
+  register: headscale_authelia_acme_key_stat
 
 - name: Generate ACME account private key
   community.crypto.openssl_privatekey:
-    path: "{{ acme_account_key_path }}"
-  when: not acme_key_stat.stat.exists
+    path: "{{ headscale_authelia_acme_account_key_path }}"
+  when: not headscale_authelia_acme_key_stat.stat.exists
 
 - name: Register ACME account with CA
   community.crypto.acme_account:
-    account_key_src: "{{ acme_account_key_path }}"
-    acme_directory: "{{ acme_directory }}"
+    account_key_src: "{{ headscale_authelia_acme_account_key_path }}"
+    headscale_authelia_acme_directory: "{{ headscale_authelia_acme_directory }}"
     acme_version: 2
     terms_agreed: true
     state: present
-  register: acme_account_reg
-  when: not acme_key_stat.stat.exists
+  register: headscale_authelia_acme_account_reg
+  when: not headscale_authelia_acme_key_stat.stat.exists
 
 - name: Check if Authelia OIDC private key exists
   ansible.builtin.stat:
-    path: "{{ volumes_dir }}/authelia/oidc-private.key"
-  register: authelia_oidc_key_stat
+    path: "{{ headscale_authelia_volumes_dir }}/authelia/oidc-private.key"
+  register: headscale_authelia_oidc_key_stat
 
 - name: Check if Authelia database exists
   ansible.builtin.stat:
-    path: "{{ volumes_dir }}/authelia/db.sqlite3"
-  register: authelia_db_stat
+    path: "{{ headscale_authelia_volumes_dir }}/authelia/db.sqlite3"
+  register: headscale_authelia_auth_db_stat
 
 - name: Display info about existing Authelia installation
   ansible.builtin.debug:
     msg:
       - "Existing Authelia installation detected."
-      - "Database exists: {{ authelia_db_stat.stat.exists }}"
-      - "OIDC key exists: {{ authelia_oidc_key_stat.stat.exists }}"
+      - "Database exists: {{ headscale_authelia_auth_db_stat.stat.exists }}"
+      - "OIDC key exists: {{ headscale_authelia_oidc_key_stat.stat.exists }}"
       - "Preserving existing credentials and database."
-      - "To force regeneration, set force_wipe_volumes: true"
-  when: authelia_oidc_key_stat.stat.exists or authelia_db_stat.stat.exists
+      - "To force regeneration, set headscale_authelia_force_wipe_volumes: true"
+  when: headscale_authelia_oidc_key_stat.stat.exists or headscale_authelia_auth_db_stat.stat.exists
 
 - name: Render Authelia users file
   ansible.builtin.template:
-    src: "authelia_users.yml.j2"
-    dest: "{{ volumes_dir }}/authelia/users.yml"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    src: "headscale_authelia_auth_users.yml.j2"
+    dest: "{{ headscale_authelia_volumes_dir }}/authelia/users.yml"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0600"
   notify: Restart authelia
 
 - name: Generate OIDC private key for Authelia
   community.crypto.openssl_privatekey:
-    path: "{{ volumes_dir }}/authelia/oidc-private.key"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-  when: not authelia_oidc_key_stat.stat.exists or (force_wipe_volumes | default(false) | bool)
+    path: "{{ headscale_authelia_volumes_dir }}/authelia/oidc-private.key"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
+  when: not headscale_authelia_oidc_key_stat.stat.exists or (headscale_authelia_force_wipe_volumes | default(false) | bool)
 
 - name: Read OIDC private key content
   ansible.builtin.slurp:
-    src: "{{ volumes_dir }}/authelia/oidc-private.key"
-  register: oidc_private_key_content
+    src: "{{ headscale_authelia_volumes_dir }}/authelia/oidc-private.key"
+  register: headscale_authelia_oidc_private_key_content
 
 - name: Render Authelia configuration
   ansible.builtin.template:
     src: "authelia_configuration.yml.j2"
-    dest: "{{ volumes_dir }}/authelia/configuration.yml"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    dest: "{{ headscale_authelia_volumes_dir }}/authelia/configuration.yml"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0600"
   notify: Restart authelia

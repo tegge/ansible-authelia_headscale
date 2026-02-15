@@ -2,118 +2,118 @@
 # Headscale + Authelia Stack - Default Variables
 # Override these in your group_vars or host_vars
 
-#==============================================================================
+# ==============================================================================
 # DOMAIN CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # Public hostnames for services
-headscale_hostname: "headscale.example.com"
-authelia_hostname: "auth.example.com"
+headscale_authelia_hostname: "headscale.example.com"
+headscale_authelia_auth_hostname: "auth.example.com"
 
 # Base domain for Headscale MagicDNS
-headscale_base_domain: "hs.example.com"
+headscale_authelia_base_domain: "hs.example.com"
 
-#==============================================================================
+# ==============================================================================
 # STACK CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # Stack naming and user
-stack_name: "headscale-authelia"
-stack_user: "hsauthelia"
+headscale_authelia_stack_name: "headscale-authelia"
+headscale_authelia_stack_user: "hsauthelia"
 
 # Directory paths
-base_data_dir: "/data"
-volumes_dir: "{{ base_data_dir }}/{{ stack_name }}/volumes"
-certs_dir: "{{ volumes_dir }}/certs"
+headscale_authelia_base_data_dir: "/data"
+headscale_authelia_volumes_dir: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}/volumes"
+headscale_authelia_certs_dir: "{{ headscale_authelia_volumes_dir }}/certs"
 
-#==============================================================================
+# ==============================================================================
 # TRAEFIK CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # Deploy Traefik as part of this stack (true) or use existing instance (false)
-deploy_traefik: false
+headscale_authelia_deploy_traefik: false
 
 # Traefik network name
-# - When deploy_traefik=true: network is created by this stack
-# - When deploy_traefik=false: must be an existing external network
-traefik_network: "traefik_default"
+# - When headscale_authelia_deploy_traefik=true: network is created by this stack
+# - When headscale_authelia_deploy_traefik=false: must be an existing external network
+headscale_authelia_traefik_network: "traefik_default"
 
 # Traefik certificate resolver name
-traefik_certresolver: "letsencrypt"
+headscale_authelia_traefik_certresolver: "letsencrypt"
 
-#------------------------------------------------------------------------------
-# Traefik Container Settings (only used when deploy_traefik=true)
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Traefik Container Settings (only used when headscale_authelia_deploy_traefik=true)
+# ------------------------------------------------------------------------------
 
 # Traefik Docker image
-traefik_image: "traefik:v3.2"
+headscale_authelia_traefik_image: "traefik:v3.2"
 
 # Traefik container name
-traefik_container_name: "traefik"
+headscale_authelia_traefik_container_name: "traefik"
 
 # ACME email for Let's Encrypt certificates
-traefik_acme_email: "admin@example.com"
+headscale_authelia_traefik_acme_email: "admin@example.com"
 
 # Use Let's Encrypt staging server (set true for testing to avoid rate limits)
-traefik_acme_staging: false
+headscale_authelia_traefik_acme_staging: false
 
 # HTTP port (for ACME HTTP-01 challenge and redirect)
-traefik_http_port: 80
+headscale_authelia_traefik_http_port: 80
 
 # HTTPS port
-traefik_https_port: 443
+headscale_authelia_traefik_https_port: 443
 
 # Enable Traefik dashboard
-traefik_dashboard_enabled: false
+headscale_authelia_traefik_dashboard_enabled: false
 
 # Traefik log level (DEBUG, INFO, WARN, ERROR)
-traefik_log_level: "INFO"
+headscale_authelia_traefik_log_level: "INFO"
 
-#==============================================================================
+# ==============================================================================
 # HEADSCALE CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # Headscale ports
-headscale_http_port: 8080
-headscale_grpc_port: 50443
+headscale_authelia_http_port: 8080
+headscale_authelia_grpc_port: 50443
 
 # OIDC client configuration
-headscale_oidc_client_id: "headscale-client"
+headscale_authelia_oidc_client_id: "headscale-client"
 
-#==============================================================================
+# ==============================================================================
 # ACME / CERTIFICATE AUTHORITY
-#==============================================================================
+# ==============================================================================
 
 # ACME directory (use step-ca for internal or Let's Encrypt for external)
-acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
-acme_account_key_path: "/etc/ssl/acme-account.key"
+headscale_authelia_acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
+headscale_authelia_acme_account_key_path: "/etc/ssl/acme-account.key"
 
-#==============================================================================
+# ==============================================================================
 # NETWORK CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # OPNsense/gateway IP for DNS resolution
-opnsense_ip: "192.168.1.1"
+headscale_authelia_opnsense_ip: "192.168.1.1"
 
 # Tailscale router subnet routes to advertise
-tailscale_routes:
+headscale_authelia_tailscale_routes:
   - "192.168.1.0/24"
 
 # Tailscale router macvlan configuration
-tailscale_router_ip: "192.168.1.222"
-tailscale_router_subnet: "192.168.1.0/24"
-tailscale_router_gateway: "192.168.1.1"
+headscale_authelia_tailscale_router_ip: "192.168.1.222"
+headscale_authelia_tailscale_router_subnet: "192.168.1.0/24"
+headscale_authelia_tailscale_router_gateway: "192.168.1.1"
 
 # Docker host physical interface for macvlan
-docker_host_interface: "eth0"
+headscale_authelia_docker_host_interface: "eth0"
 
-#==============================================================================
+# ==============================================================================
 # AUTHELIA USER CONFIGURATION
-#==============================================================================
+# ==============================================================================
 
 # Define users with their hashed passwords
 # Generate hash: docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password "YourPassword"
-authelia_users: []
+headscale_authelia_auth_users: []
 #  - username: "admin"
 #    displayname: "Administrator"
 #    password: "{{ vault_hashed_pass_admin }}"
@@ -121,10 +121,10 @@ authelia_users: []
 #    groups:
 #      - "admins"
 
-#==============================================================================
+# ==============================================================================
 # SAFETY CONTROLS
-#==============================================================================
+# ==============================================================================
 
 # Set to true to wipe existing volumes and regenerate all keys
 # WARNING: This deletes all data including databases, keys, and certificates
-force_wipe_volumes: false
+headscale_authelia_force_wipe_volumes: false

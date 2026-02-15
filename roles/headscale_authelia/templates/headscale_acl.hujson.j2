@@ -4,7 +4,7 @@
   // Groups define collections of users that can be referenced in ACLs
   "groups": {
 {% for group_name, members in acl_groups.items() | default({}) %}
-    "group:{{ group_name }}": [{% for member in members %}"{{ member }}@{{ headscale_hostname }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
+    "group:{{ group_name }}": [{% for member in members %}"{{ member }}@{{ headscale_authelia_hostname }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
 
 {% else %}
     "group:users": []
@@ -19,14 +19,14 @@
 {% else %}
     "tag:server": [],
     "tag:client": [],
-    "tag:router": ["router@{{ headscale_hostname }}"]
+    "tag:router": ["router@{{ headscale_authelia_hostname }}"]
 {% endfor %}
   },
 
   // Auto-approve subnet routes from the router
   "autoApprovers": {
     "routes": {
-{% for route in tailscale_routes | default([]) %}
+{% for route in headscale_authelia_tailscale_routes | default([]) %}
       "{{ route }}": ["tag:router"]{% if not loop.last %},{% endif %}
 
 {% endfor %}
@@ -47,7 +47,7 @@
       "action": "accept",
       "src": ["autogroup:member"],
       "dst": [
-{% for route in tailscale_routes | default([]) %}
+{% for route in headscale_authelia_tailscale_routes | default([]) %}
         "{{ route }}:*"{% if not loop.last %},{% endif %}
 
 {% endfor %}
@@ -59,7 +59,7 @@
       "action": "accept",
       "src": ["*"],
       "dst": [
-        "{{ opnsense_ip }}:53",
+        "{{ headscale_authelia_opnsense_ip }}:53",
         "1.1.1.1:53",
         "8.8.8.8:53"
       ]

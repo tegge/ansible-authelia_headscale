@@ -3,58 +3,58 @@
 
 - name: Check if Headscale Noise key exists
   ansible.builtin.stat:
-    path: "{{ volumes_dir }}/headscale/config/noise_private.key"
-  register: headscale_noise_key_stat
+    path: "{{ headscale_authelia_volumes_dir }}/headscale/config/noise_private.key"
+  register: headscale_authelia_noise_key_stat
 
 - name: Check if Headscale database exists
   ansible.builtin.stat:
-    path: "{{ volumes_dir }}/headscale/lib/db.sqlite"
-  register: headscale_db_stat
+    path: "{{ headscale_authelia_volumes_dir }}/headscale/lib/db.sqlite"
+  register: headscale_authelia_db_stat
 
 - name: Display info about existing Headscale installation
   ansible.builtin.debug:
     msg:
-      - "Database exists: {{ headscale_db_stat.stat.exists }}"
-      - "Noise key exists: {{ headscale_noise_key_stat.stat.exists }}"
-      - "To force regeneration, set force_wipe_volumes: true"
-  when: headscale_noise_key_stat.stat.exists or headscale_db_stat.stat.exists
+      - "Database exists: {{ headscale_authelia_db_stat.stat.exists }}"
+      - "Noise key exists: {{ headscale_authelia_noise_key_stat.stat.exists }}"
+      - "To force regeneration, set headscale_authelia_force_wipe_volumes: true"
+  when: headscale_authelia_noise_key_stat.stat.exists or headscale_authelia_db_stat.stat.exists
 
 - name: Remove Noise key file (only when wiping volumes)
   ansible.builtin.file:
-    path: "{{ volumes_dir }}/headscale/config/noise_private.key"
+    path: "{{ headscale_authelia_volumes_dir }}/headscale/config/noise_private.key"
     state: absent
-  when: force_wipe_volumes | default(false) | bool
+  when: headscale_authelia_force_wipe_volumes | default(false) | bool
 
 - name: Render Headscale configuration
   ansible.builtin.template:
     src: "headscale_config.yaml.j2"
-    dest: "{{ volumes_dir }}/headscale/config/config.yaml"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    dest: "{{ headscale_authelia_volumes_dir }}/headscale/config/config.yaml"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0644"
   notify: Restart headscale
 
 - name: Render Headscale ACL policy
   ansible.builtin.template:
     src: "headscale_acl.hujson.j2"
-    dest: "{{ volumes_dir }}/headscale/config/acl.hujson"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    dest: "{{ headscale_authelia_volumes_dir }}/headscale/config/acl.hujson"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0644"
   notify: Restart headscale
 
 - name: Render Docker Compose file
   ansible.builtin.template:
     src: "docker-compose.yml.j2"
-    dest: "{{ base_data_dir }}/{{ stack_name }}/{{ stack_name }}.yml"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    dest: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}/{{ headscale_authelia_stack_name }}.yml"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0644"
 
 - name: Render Tailscale router entrypoint script
   ansible.builtin.template:
     src: "tailscale-entrypoint.sh.j2"
-    dest: "{{ base_data_dir }}/{{ stack_name }}/tailscale-entrypoint.sh"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    dest: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}/tailscale-entrypoint.sh"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "0755"

@@ -2,12 +2,12 @@
 # Coordination server for Tailscale clients with OIDC authentication
 
 # Public server URL where Headscale is accessible
-server_url: "https://{{ headscale_hostname }}"
+server_url: "https://{{ headscale_authelia_hostname }}"
 
 # Network configuration
-listen_addr: "0.0.0.0:{{ headscale_http_port }}"
+listen_addr: "0.0.0.0:{{ headscale_authelia_http_port }}"
 metrics_listen_addr: "127.0.0.1:9090"
-grpc_listen_addr: "0.0.0.0:{{ headscale_grpc_port }}"
+grpc_listen_addr: "0.0.0.0:{{ headscale_authelia_grpc_port }}"
 grpc_allow_insecure: false
 
 # Database settings
@@ -43,7 +43,7 @@ derp:
 dns:
   override_local_dns: true
   magic_dns: true
-  base_domain: "{{ headscale_base_domain }}"
+  base_domain: "{{ headscale_authelia_base_domain }}"
   nameservers:
     global:
       - 1.1.1.1
@@ -66,9 +66,9 @@ policy:
 # OIDC Authentication with Authelia
 oidc:
   only_start_if_oidc_is_available: false
-  issuer: "https://{{ authelia_hostname }}"
-  client_id: "{{ headscale_oidc_client_id }}"
-  client_secret: "{{ headscale_oidc_client_secret }}"
+  issuer: "https://{{ headscale_authelia_auth_hostname }}"
+  client_id: "{{ headscale_authelia_oidc_client_id }}"
+  client_secret: "{{ headscale_authelia_oidc_client_secret }}"
   scope: ["openid", "profile", "email", "groups"]
   
   # PKCE for enhanced security
@@ -79,9 +79,9 @@ oidc:
   # Optional: Restrict access to specific domains/users
   allowed_domains: []
   allowed_users: []
-{% if headscale_allowed_groups is defined %}
+{% if headscale_authelia_allowed_groups is defined %}
   allowed_groups:
-{% for group in headscale_allowed_groups %}
+{% for group in headscale_authelia_allowed_groups %}
     - "{{ group }}"
 {% endfor %}
 {% else %}

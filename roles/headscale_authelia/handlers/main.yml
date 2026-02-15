@@ -3,33 +3,33 @@
 
 - name: Restart traefik
   community.docker.docker_container:
-    name: "{{ traefik_container_name }}"
+    name: "{{ headscale_authelia_traefik_container_name }}"
     state: started
     restart: true
-  when: deploy_traefik | default(false) | bool
+  when: headscale_authelia_deploy_traefik | default(false) | bool
 
 - name: Restart headscale
   community.docker.docker_container:
-    name: "headscale_{{ stack_name }}"
+    name: "headscale_{{ headscale_authelia_stack_name }}"
     state: started
     restart: true
 
 - name: Restart authelia
   community.docker.docker_container:
-    name: "authelia_{{ stack_name }}"
+    name: "authelia_{{ headscale_authelia_stack_name }}"
     state: started
     restart: true
 
 - name: Restart tailscale-router
   community.docker.docker_container:
-    name: "tailscale-router_{{ stack_name }}"
+    name: "tailscale-router_{{ headscale_authelia_stack_name }}"
     state: started
     restart: true
 
 - name: Recreate stack
   community.docker.docker_compose_v2:
-    project_src: "{{ base_data_dir }}/{{ stack_name }}"
+    project_src: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}"
     files:
-      - "{{ stack_name }}.yml"
+      - "{{ headscale_authelia_stack_name }}.yml"
     state: present
     recreate: always

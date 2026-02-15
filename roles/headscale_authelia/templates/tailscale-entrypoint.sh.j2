@@ -7,8 +7,8 @@ set -e
 echo "Configuring routing for subnet router..."
 
 # Advertised subnets (excluding local subnet)
-SUBNETS="{{ tailscale_routes | reject('search', tailscale_router_subnet | regex_replace('/\\d+$', '')) | join(' ') }}"
-GATEWAY="{{ tailscale_router_gateway }}"
+SUBNETS="{{ headscale_authelia_tailscale_routes | reject('search', headscale_authelia_tailscale_router_subnet | regex_replace('/\\d+$', '')) | join(' ') }}"
+GATEWAY="{{ headscale_authelia_tailscale_router_gateway }}"
 
 # Add static routes for each advertised subnet via macvlan interface
 for subnet in $SUBNETS; do

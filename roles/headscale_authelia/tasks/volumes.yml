@@ -1,56 +1,56 @@
 ---
 # Volume Management
 
-- name: Display warning if force_wipe_volumes is enabled
+- name: Display warning if headscale_authelia_force_wipe_volumes is enabled
   ansible.builtin.debug:
     msg:
-      - "WARNING: force_wipe_volumes is set to true!"
+      - "WARNING: headscale_authelia_force_wipe_volumes is set to true!"
       - "This will DELETE all existing data including:"
       - "  - Headscale database and registered nodes"
       - "  - Authelia database and user sessions"
       - "  - All keys and certificates"
       - "  - Tailscale router state"
       - "Proceeding in 10 seconds... Press Ctrl+C to abort."
-  when: force_wipe_volumes | default(false) | bool
+  when: headscale_authelia_force_wipe_volumes | default(false) | bool
 
 - name: Pause before wiping volumes
   ansible.builtin.pause:
     seconds: 10
-  when: force_wipe_volumes | default(false) | bool
+  when: headscale_authelia_force_wipe_volumes | default(false) | bool
 
 - name: Stop all containers before wiping volumes
   community.docker.docker_compose_v2:
-    project_src: "{{ base_data_dir }}/{{ stack_name }}"
+    project_src: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}"
     files:
-      - "{{ stack_name }}.yml"
+      - "{{ headscale_authelia_stack_name }}.yml"
     state: stopped
-  when: force_wipe_volumes | default(false) | bool
-  ignore_errors: true
+  when: headscale_authelia_force_wipe_volumes | default(false) | bool
+  failed_when: false
 
-- name: Wipe volume directories (when force_wipe_volumes is true)
+- name: Wipe volume directories (when headscale_authelia_force_wipe_volumes is true)
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
-    - "{{ volumes_dir }}/headscale/lib"
-    - "{{ volumes_dir }}/headscale/config"
-    - "{{ volumes_dir }}/authelia"
-    - "{{ volumes_dir }}/tailscale"
-  when: force_wipe_volumes | default(false) | bool
+    - "{{ headscale_authelia_volumes_dir }}/headscale/lib"
+    - "{{ headscale_authelia_volumes_dir }}/headscale/config"
+    - "{{ headscale_authelia_volumes_dir }}/authelia"
+    - "{{ headscale_authelia_volumes_dir }}/tailscale"
+  when: headscale_authelia_force_wipe_volumes | default(false) | bool
 
 - name: Create base and sub-volume directories
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    owner: "{{ headscale_authelia_service_user }}"
+    group: "{{ headscale_authelia_service_user }}"
     mode: "{{ item.mode | default('0755') }}"
   loop:
-    - { path: "{{ volumes_dir }}" }
-    - { path: "{{ volumes_dir }}/headscale/config" }
-    - { path: "{{ volumes_dir }}/headscale/lib" }
-    - { path: "{{ volumes_dir }}/headscale/run" }
-    - { path: "{{ volumes_dir }}/authelia" }
-    - { path: "{{ volumes_dir }}/tailscale" }
-    - { path: "{{ certs_dir }}" }
-    - { path: "{{ base_data_dir }}/{{ stack_name }}" }
+    - { path: "{{ headscale_authelia_volumes_dir }}" }
+    - { path: "{{ headscale_authelia_volumes_dir }}/headscale/config" }
+    - { path: "{{ headscale_authelia_volumes_dir }}/headscale/lib" }
+    - { path: "{{ headscale_authelia_volumes_dir }}/headscale/run" }
+    - { path: "{{ headscale_authelia_volumes_dir }}/authelia" }
+    - { path: "{{ headscale_authelia_volumes_dir }}/tailscale" }
+    - { path: "{{ headscale_authelia_certs_dir }}" }
+    - { path: "{{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}" }

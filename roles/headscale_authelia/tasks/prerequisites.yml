@@ -3,17 +3,17 @@
 
 - name: Ensure stack user exists
   ansible.builtin.user:
-    name: "{{ stack_user }}"
+    name: "{{ headscale_authelia_stack_user }}"
     system: true
     shell: /usr/sbin/nologin
     create_home: false
-  register: stack_user_info
+  register: headscale_authelia_stack_user_info
 
 - name: Get stack user UID and GID
   ansible.builtin.set_fact:
-    service_uid: "{{ stack_user_info.uid }}"
-    service_gid: "{{ stack_user_info.group }}"
-    service_user: "{{ stack_user }}"
+    headscale_authelia_service_uid: "{{ headscale_authelia_stack_user_info.uid }}"
+    headscale_authelia_service_gid: "{{ headscale_authelia_stack_user_info.group }}"
+    headscale_authelia_service_user: "{{ headscale_authelia_stack_user }}"
 
 - name: Enable IPv4 forwarding (runtime)
   ansible.posix.sysctl:

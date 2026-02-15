@@ -3,7 +3,7 @@
 
 - name: Check if deployment made changes
   ansible.builtin.set_fact:
-    deployment_changed: "{{ compose_res.changed | default(false) }}"
+    deployment_changed: "{{ headscale_authelia_compose_res.changed | default(false) }}"
 
 - name: Display deployment information (only if changes were made)
   ansible.builtin.debug:
@@ -13,32 +13,32 @@
       - "=========================================="
       - ""
       - "Services:"
-      - "  - https://{{ authelia_hostname }} (Authelia)"
-      - "  - https://{{ headscale_hostname }} (Headscale)"
+      - "  - https://{{ headscale_authelia_auth_hostname }} (Authelia)"
+      - "  - https://{{ headscale_authelia_hostname }} (Headscale)"
       - ""
-      - "Traefik Mode: {% if deploy_traefik | default(false) | bool %}DEPLOYED with stack{% else %}EXTERNAL ({{ traefik_network }}){% endif %}"
-      - "Certificate Resolver: {{ traefik_certresolver }}"
-      - "Stack Name: {{ stack_name }}"
+      - "Traefik Mode: {% if headscale_authelia_deploy_traefik | default(false) | bool %}DEPLOYED with stack{% else %}EXTERNAL ({{ headscale_authelia_traefik_network }}){% endif %}"
+      - "Certificate Resolver: {{ headscale_authelia_traefik_certresolver }}"
+      - "Stack Name: {{ headscale_authelia_stack_name }}"
       - ""
       - "Next Steps:"
       - ""
       - "1. Configure DNS A records pointing to your server:"
-      - "   {{ authelia_hostname }} -> YOUR_SERVER_IP"
-      - "   {{ headscale_hostname }} -> YOUR_SERVER_IP"
+      - "   {{ headscale_authelia_auth_hostname }} -> YOUR_SERVER_IP"
+      - "   {{ headscale_authelia_hostname }} -> YOUR_SERVER_IP"
       - ""
       - "2. Configure port forwarding if behind NAT:"
-{% if deploy_traefik | default(false) | bool %}
-      - "   WAN:{{ traefik_http_port }}/TCP -> SERVER_IP:{{ traefik_http_port }} (HTTP)"
-      - "   WAN:{{ traefik_https_port }}/TCP -> SERVER_IP:{{ traefik_https_port }} (HTTPS)"
+{% if headscale_authelia_deploy_traefik | default(false) | bool %}
+      - "   WAN:{{ headscale_authelia_traefik_http_port }}/TCP -> SERVER_IP:{{ headscale_authelia_traefik_http_port }} (HTTP)"
+      - "   WAN:{{ headscale_authelia_traefik_https_port }}/TCP -> SERVER_IP:{{ headscale_authelia_traefik_https_port }} (HTTPS)"
 {% else %}
       - "   WAN:443/TCP -> SERVER_IP:443 (HTTPS)"
 {% endif %}
       - "   WAN:3478/UDP -> SERVER_IP:3478 (DERP/STUN)"
       - ""
-      - "3. Enroll 2FA: https://{{ authelia_hostname }}"
+      - "3. Enroll 2FA: https://{{ headscale_authelia_auth_hostname }}"
       - ""
       - "4. Connect VPN Clients:"
-      - "   tailscale login --login-server=https://{{ headscale_hostname }}"
+      - "   tailscale login --login-server=https://{{ headscale_authelia_hostname }}"
       - "   tailscale up --accept-routes"
       - ""
       - "=========================================="

@@ -1,24 +1,24 @@
 services:
-{% if deploy_traefik | default(false) | bool %}
+{% if headscale_authelia_deploy_traefik | default(false) | bool %}
   #============================================================================
   # TRAEFIK REVERSE PROXY
   #============================================================================
   traefik:
-    image: {{ traefik_image }}
-    container_name: {{ traefik_container_name }}
+    image: {{ headscale_authelia_traefik_image }}
+    container_name: {{ headscale_authelia_traefik_container_name }}
     restart: unless-stopped
     networks:
-      - {{ traefik_network }}
+      - {{ headscale_authelia_traefik_network }}
     ports:
-      - "{{ traefik_http_port }}:80"
-      - "{{ traefik_https_port }}:443"
+      - "{{ headscale_authelia_traefik_http_port }}:80"
+      - "{{ headscale_authelia_traefik_https_port }}:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - {{ volumes_dir }}/traefik/acme:/acme
+      - {{ headscale_authelia_volumes_dir }}/traefik/acme:/acme
     command:
       # API and Dashboard
       - "--api.insecure=false"
-{% if traefik_dashboard_enabled | default(false) | bool %}
+{% if headscale_authelia_traefik_dashboard_enabled | default(false) | bool %}
       - "--api.dashboard=true"
 {% else %}
       - "--api.dashboard=false"
@@ -26,28 +26,28 @@ services:
       # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network={{ traefik_network }}"
+      - "--providers.docker.network={{ headscale_authelia_traefik_network }}"
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.websecure.address=:443"
       # Let's Encrypt ACME
-      - "--certificatesresolvers.{{ traefik_certresolver }}.acme.email={{ traefik_acme_email }}"
-      - "--certificatesresolvers.{{ traefik_certresolver }}.acme.storage=/acme/acme.json"
-      - "--certificatesresolvers.{{ traefik_certresolver }}.acme.httpchallenge.entrypoint=web"
-{% if traefik_acme_staging | default(false) | bool %}
-      - "--certificatesresolvers.{{ traefik_certresolver }}.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.{{ headscale_authelia_traefik_certresolver }}.acme.email={{ headscale_authelia_traefik_acme_email }}"
+      - "--certificatesresolvers.{{ headscale_authelia_traefik_certresolver }}.acme.storage=/acme/acme.json"
+      - "--certificatesresolvers.{{ headscale_authelia_traefik_certresolver }}.acme.httpchallenge.entrypoint=web"
+{% if headscale_authelia_traefik_acme_staging | default(false) | bool %}
+      - "--certificatesresolvers.{{ headscale_authelia_traefik_certresolver }}.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
 {% endif %}
       # Logging
-      - "--log.level={{ traefik_log_level | default('INFO') }}"
+      - "--log.level={{ headscale_authelia_traefik_log_level | default('INFO') }}"
     labels:
       - "traefik.enable=true"
-{% if traefik_dashboard_enabled | default(false) | bool %}
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.{{ headscale_hostname | regex_replace('^[^.]+\\.', '') }}`)"
+{% if headscale_authelia_traefik_dashboard_enabled | default(false) | bool %}
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.{{ headscale_authelia_hostname | regex_replace('^[^.]+\\.', '') }}`)"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.routers.traefik-dashboard.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver={{ headscale_authelia_traefik_certresolver }}"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
 {% endif %}
     healthcheck:
@@ -63,17 +63,17 @@ services:
   #============================================================================
   authelia:
     image: authelia/authelia:latest
-    container_name: authelia_{{ stack_name }}
-    user: "{{ service_uid }}:{{ service_gid }}"
+    container_name: authelia_{{ headscale_authelia_stack_name }}
+    user: "{{ headscale_authelia_service_uid }}:{{ headscale_authelia_service_gid }}"
     networks:
       - internal
-      - {{ traefik_network }}
+      - {{ headscale_authelia_traefik_network }}
     volumes:
-      - "{{ volumes_dir }}/authelia:/config"
+      - "{{ headscale_authelia_volumes_dir }}/authelia:/config"
     environment:
-      - AUTHELIA_JWT_SECRET={{ authelia_jwt_secret }}
-      - AUTHELIA_SESSION_SECRET={{ authelia_session_secret }}
-      - AUTHELIA_STORAGE_ENCRYPTION_KEY={{ authelia_storage_encryption_key }}
+      - AUTHELIA_JWT_SECRET={{ headscale_authelia_jwt_secret }}
+      - AUTHELIA_SESSION_SECRET={{ headscale_authelia_session_secret }}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY={{ headscale_authelia_storage_encryption_key }}
     expose:
       - "9091"
     restart: unless-stopped
@@ -85,39 +85,39 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network={{ traefik_network }}"
-      - "traefik.http.routers.authelia.rule=Host(`{{ authelia_hostname }}`)"
+      - "traefik.docker.network={{ headscale_authelia_traefik_network }}"
+      - "traefik.http.routers.authelia.rule=Host(`{{ headscale_authelia_auth_hostname }}`)"
       - "traefik.http.routers.authelia.entrypoints=websecure"
       - "traefik.http.routers.authelia.tls=true"
-{% if traefik_certresolver is defined and traefik_certresolver | length > 0 %}
-      - "traefik.http.routers.authelia.tls.certresolver={{ traefik_certresolver }}"
+{% if headscale_authelia_traefik_certresolver is defined and headscale_authelia_traefik_certresolver | length > 0 %}
+      - "traefik.http.routers.authelia.tls.certresolver={{ headscale_authelia_traefik_certresolver }}"
 {% endif %}
       - "traefik.http.services.authelia.loadbalancer.server.port=9091"
 
   headscale:
     image: headscale/headscale:latest
-    container_name: headscale_{{ stack_name }}
-    user: "{{ service_uid }}:{{ service_gid }}"
+    container_name: headscale_{{ headscale_authelia_stack_name }}
+    user: "{{ headscale_authelia_service_uid }}:{{ headscale_authelia_service_gid }}"
     networks:
       - internal
-      - {{ traefik_network }}
-{% if traefik_container_ip is defined %}
+      - {{ headscale_authelia_traefik_network }}
+{% if headscale_authelia_traefik_container_ip is defined %}
     extra_hosts:
-      - "{{ authelia_hostname }}:{{ traefik_container_ip }}"
-      - "{{ headscale_hostname }}:{{ traefik_container_ip }}"
+      - "{{ headscale_authelia_auth_hostname }}:{{ headscale_authelia_traefik_container_ip }}"
+      - "{{ headscale_authelia_hostname }}:{{ headscale_authelia_traefik_container_ip }}"
 {% endif %}
     depends_on:
       authelia:
         condition: service_healthy
     volumes:
-      - "{{ volumes_dir }}/headscale/config:/etc/headscale"
-      - "{{ volumes_dir }}/headscale/lib:/var/lib/headscale"
-      - "{{ volumes_dir }}/headscale/run:/var/run/headscale"
+      - "{{ headscale_authelia_volumes_dir }}/headscale/config:/etc/headscale"
+      - "{{ headscale_authelia_volumes_dir }}/headscale/lib:/var/lib/headscale"
+      - "{{ headscale_authelia_volumes_dir }}/headscale/run:/var/run/headscale"
     command: serve
     expose:
-      - "{{ headscale_grpc_port }}"
+      - "{{ headscale_authelia_grpc_port }}"
     ports:
-      - "127.0.0.1:8080:{{ headscale_http_port }}"
+      - "127.0.0.1:8080:{{ headscale_authelia_http_port }}"
       - "3478:3478/udp"
     restart: unless-stopped
     healthcheck:
@@ -128,23 +128,23 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network={{ traefik_network }}"
-      - "traefik.http.routers.headscale.rule=Host(`{{ headscale_hostname }}`)"
+      - "traefik.docker.network={{ headscale_authelia_traefik_network }}"
+      - "traefik.http.routers.headscale.rule=Host(`{{ headscale_authelia_hostname }}`)"
       - "traefik.http.routers.headscale.entrypoints=websecure"
       - "traefik.http.routers.headscale.tls=true"
-{% if traefik_certresolver is defined and traefik_certresolver | length > 0 %}
-      - "traefik.http.routers.headscale.tls.certresolver={{ traefik_certresolver }}"
+{% if headscale_authelia_traefik_certresolver is defined and headscale_authelia_traefik_certresolver | length > 0 %}
+      - "traefik.http.routers.headscale.tls.certresolver={{ headscale_authelia_traefik_certresolver }}"
 {% endif %}
-      - "traefik.http.services.headscale.loadbalancer.server.port={{ headscale_http_port }}"
+      - "traefik.http.services.headscale.loadbalancer.server.port={{ headscale_authelia_http_port }}"
 
   tailscale-router:
     image: tailscale/tailscale:latest
-    container_name: tailscale-router_{{ stack_name }}
+    container_name: tailscale-router_{{ headscale_authelia_stack_name }}
     hostname: docker-subnet-router
     restart: unless-stopped
     networks:
       tailscale_macvlan:
-        ipv4_address: {{ tailscale_router_ip }}
+        ipv4_address: {{ headscale_authelia_tailscale_router_ip }}
       internal:
     cap_add:
       - NET_ADMIN
@@ -152,13 +152,13 @@ services:
       - SYS_MODULE
     entrypoint: ["/usr/local/bin/tailscale-entrypoint.sh"]
     volumes:
-      - {{ volumes_dir }}/tailscale:/var/lib/tailscale
-      - {{ base_data_dir }}/{{ stack_name }}/tailscale-entrypoint.sh:/usr/local/bin/tailscale-entrypoint.sh:ro
+      - {{ headscale_authelia_volumes_dir }}/tailscale:/var/lib/tailscale
+      - {{ headscale_authelia_base_data_dir }}/{{ headscale_authelia_stack_name }}/tailscale-entrypoint.sh:/usr/local/bin/tailscale-entrypoint.sh:ro
     environment:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_AUTH_ONCE=true
-      - TS_ROUTES={{ tailscale_routes | join(',') }}
+      - TS_ROUTES={{ headscale_authelia_tailscale_routes | join(',') }}
       - TS_ACCEPT_ROUTES=true
       - TS_HOSTNAME=docker-subnet-router
       - TS_EXTRA_ARGS=--login-server=http://headscale:8080 --advertise-tags=tag:router --snat-subnet-routes=false
@@ -168,12 +168,12 @@ services:
 
 networks:
   internal:
-    name: {{ stack_name }}_net
+    name: {{ headscale_authelia_stack_name }}_net
     driver: bridge
 
-  {{ traefik_network }}:
-{% if deploy_traefik | default(false) | bool %}
-    name: {{ traefik_network }}
+  {{ headscale_authelia_traefik_network }}:
+{% if headscale_authelia_deploy_traefik | default(false) | bool %}
+    name: {{ headscale_authelia_traefik_network }}
     driver: bridge
 {% else %}
     external: true
@@ -182,11 +182,11 @@ networks:
   tailscale_macvlan:
     driver: macvlan
     driver_opts:
-      parent: {{ docker_host_interface }}
+      parent: {{ headscale_authelia_docker_host_interface }}
     ipam:
       config:
-        - subnet: {{ tailscale_router_subnet }}
-          gateway: {{ tailscale_router_gateway }}
-          ip_range: {{ tailscale_router_ip }}/32
+        - subnet: {{ headscale_authelia_tailscale_router_subnet }}
+          gateway: {{ headscale_authelia_tailscale_router_gateway }}
+          ip_range: {{ headscale_authelia_tailscale_router_ip }}/32
           aux_addresses:
-            router: {{ tailscale_router_gateway }}
+            router: {{ headscale_authelia_tailscale_router_gateway }}
