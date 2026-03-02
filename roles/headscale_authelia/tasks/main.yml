@@ -10,6 +10,10 @@
 - name: Include volume management tasks
   ansible.builtin.include_tasks: volumes.yml
 
+- name: Include CA trust configuration tasks
+  ansible.builtin.include_tasks: ca_trust.yml
+  when: headscale_authelia_enable_step_ca_trust | default(false) | bool
+
 - name: Include Authelia configuration tasks
   ansible.builtin.include_tasks: authelia_config.yml
 

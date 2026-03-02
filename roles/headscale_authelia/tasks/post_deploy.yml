@@ -5,6 +5,14 @@
   ansible.builtin.set_fact:
     deployment_changed: "{{ headscale_authelia_compose_res.changed | default(false) }}"
 
+- name: Build port forwarding message
+  ansible.builtin.set_fact:
+    port_forward_msg: >-
+      {{ ['   WAN:' + (headscale_authelia_traefik_http_port | string) + '/TCP -> SERVER_IP:' + (headscale_authelia_traefik_http_port | string) + ' (HTTP)',
+          '   WAN:' + (headscale_authelia_traefik_https_port | string) + '/TCP -> SERVER_IP:' + (headscale_authelia_traefik_https_port | string) + ' (HTTPS)']
+        if (headscale_authelia_deploy_traefik | default(false) | bool)
+        else ['   WAN:443/TCP -> SERVER_IP:443 (HTTPS)'] }}
+
 - name: Display deployment information (only if changes were made)
   ansible.builtin.debug:
     msg:
@@ -16,7 +24,7 @@
       - "  - https://{{ headscale_authelia_auth_hostname }} (Authelia)"
       - "  - https://{{ headscale_authelia_hostname }} (Headscale)"
       - ""
-      - "Traefik Mode: {% if headscale_authelia_deploy_traefik | default(false) | bool %}DEPLOYED with stack{% else %}EXTERNAL ({{ headscale_authelia_traefik_network }}){% endif %}"
+      - "Traefik Mode: {{ 'DEPLOYED with stack' if (headscale_authelia_deploy_traefik | default(false) | bool) else 'EXTERNAL (' + headscale_authelia_traefik_network + ')' }}"
       - "Certificate Resolver: {{ headscale_authelia_traefik_certresolver }}"
       - "Stack Name: {{ headscale_authelia_stack_name }}"
       - ""
@@ -27,12 +35,7 @@
       - "   {{ headscale_authelia_hostname }} -> YOUR_SERVER_IP"
       - ""
       - "2. Configure port forwarding if behind NAT:"
-{% if headscale_authelia_deploy_traefik | default(false) | bool %}
-      - "   WAN:{{ headscale_authelia_traefik_http_port }}/TCP -> SERVER_IP:{{ headscale_authelia_traefik_http_port }} (HTTP)"
-      - "   WAN:{{ headscale_authelia_traefik_https_port }}/TCP -> SERVER_IP:{{ headscale_authelia_traefik_https_port }} (HTTPS)"
-{% else %}
-      - "   WAN:443/TCP -> SERVER_IP:443 (HTTPS)"
-{% endif %}
+      - "{{ port_forward_msg | join('\n') }}"
       - "   WAN:3478/UDP -> SERVER_IP:3478 (DERP/STUN)"
       - ""
       - "3. Enroll 2FA: https://{{ headscale_authelia_auth_hostname }}"

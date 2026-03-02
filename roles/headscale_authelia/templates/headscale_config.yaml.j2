@@ -56,6 +56,10 @@ dns:
         - {{ ns }}
 {% endfor %}
 {% endfor %}
+    search_domains:
+{% for domain in dns_split_domains %}
+      - "{{ domain }}"
+{% endfor %}
 {% endif %}
 
 # ACL Policy configuration

@@ -1,0 +1,15 @@
+---
+# CA Trust Configuration for Headscale + Authelia
+
+- name: Fetch step-ca root certificate bundle
+  ansible.builtin.get_url:
+    url: "https://{{ step_ca_host }}:{{ step_ca_port }}/roots.pem"
+    dest: "{{ headscale_authelia_certs_dir }}/step-ca-root.crt"
+    mode: "0644"
+    validate_certs: false
+  register: step_ca_root_fetch
+
+- name: Display CA certificate fetch status
+  ansible.builtin.debug:
+    msg: "step-ca root certificate fetched to {{ headscale_authelia_certs_dir }}/step-ca-root.crt"
+  when: step_ca_root_fetch.changed

@@ -88,6 +88,9 @@ headscale_authelia_oidc_client_id: "headscale-client"
 headscale_authelia_acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
 headscale_authelia_acme_account_key_path: "/etc/ssl/acme-account.key"
 
+# Enable fetching and trusting step-ca root cert for internal ACME
+headscale_authelia_enable_step_ca_trust: true
+
 # ==============================================================================
 # NETWORK CONFIGURATION
 # ==============================================================================
@@ -98,14 +101,6 @@ headscale_authelia_opnsense_ip: "192.168.1.1"
 # Tailscale router subnet routes to advertise
 headscale_authelia_tailscale_routes:
   - "192.168.1.0/24"
-
-# Tailscale router macvlan configuration
-headscale_authelia_tailscale_router_ip: "192.168.1.222"
-headscale_authelia_tailscale_router_subnet: "192.168.1.0/24"
-headscale_authelia_tailscale_router_gateway: "192.168.1.1"
-
-# Docker host physical interface for macvlan
-headscale_authelia_docker_host_interface: "eth0"
 
 # ==============================================================================
 # AUTHELIA USER CONFIGURATION

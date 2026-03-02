@@ -59,17 +59,10 @@ headscale_authelia_base_data_dir: "/data"
 # Gateway/DNS server IP
 headscale_authelia_opnsense_ip: "192.168.1.1"
 
-# Tailscale router configuration
+# Tailscale router subnet routes to advertise
 headscale_authelia_tailscale_routes:
   - "192.168.1.0/24"
   - "192.168.2.0/24"
-
-headscale_authelia_tailscale_router_ip: "192.168.1.222"
-headscale_authelia_tailscale_router_subnet: "192.168.1.0/24"
-headscale_authelia_tailscale_router_gateway: "192.168.1.1"
-
-# Docker host physical interface for macvlan
-headscale_authelia_docker_host_interface: "eth0"
 
 #==============================================================================
 # OIDC CONFIGURATION
@@ -121,13 +114,11 @@ acl_tag_owners:
     - "router"
 
 #==============================================================================
-# DNS SPLIT CONFIGURATION (Optional)
+# ACME / CERTIFICATE AUTHORITY
 #==============================================================================
 
-# Split DNS for internal domains
-# dns_split_domains:
-#   "internal.lan":
-#     - "192.168.1.1"
+# Enable fetching and trusting step-ca root cert for internal ACME
+headscale_authelia_enable_step_ca_trust: true
 
 #==============================================================================
 # SECRETS (Store in vault.yml)

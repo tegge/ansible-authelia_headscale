@@ -19,7 +19,7 @@
 {% else %}
     "tag:server": [],
     "tag:client": [],
-    "tag:router": ["router@{{ headscale_authelia_hostname }}"]
+    "tag:router": ["tagged-devices@{{ headscale_authelia_hostname }}"]
 {% endfor %}
   },
 
@@ -45,7 +45,7 @@
     // Allow VPN users to access internal networks
     {
       "action": "accept",
-      "src": ["autogroup:member"],
+      "src": ["group:parents"],
       "dst": [
 {% for route in headscale_authelia_tailscale_routes | default([]) %}
         "{{ route }}:*"{% if not loop.last %},{% endif %}

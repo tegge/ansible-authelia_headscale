@@ -43,7 +43,7 @@
 
 - name: Render Authelia users file
   ansible.builtin.template:
-    src: "headscale_authelia_auth_users.yml.j2"
+    src: "authelia_users.yml.j2"
     dest: "{{ headscale_authelia_volumes_dir }}/authelia/users.yml"
     owner: "{{ headscale_authelia_service_user }}"
     group: "{{ headscale_authelia_service_user }}"

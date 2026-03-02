@@ -8,7 +8,7 @@
 
 - name: Build list of services for initial deployment
   ansible.builtin.set_fact:
-    headscale_authelia_initial_services: "{{ ['traefik'] if headscale_authelia_deploy_traefik | default(false) | bool else [] }} + ['headscale', 'authelia']"
+    headscale_authelia_initial_services: "{{ (['traefik'] if (headscale_authelia_deploy_traefik | default(false) | bool) else []) + ['headscale', 'authelia'] }}"
 
 - name: Deploy core services first (for key generation)
   community.docker.docker_compose_v2:
@@ -59,7 +59,7 @@
 
 - name: Store pre-auth key persistently
   ansible.builtin.copy:
-    content: "{{ headscale_authelia_preauth_key_output.stdout_lines[-1] }}"
+    content: "{{ headscale_authelia_preauth_key_output.stdout_lines | last }}"
     dest: "{{ headscale_authelia_volumes_dir }}/headscale_authelia_router_preauth_key"
     owner: "{{ headscale_authelia_service_user }}"
     group: "{{ headscale_authelia_service_user }}"

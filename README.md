@@ -21,7 +21,7 @@ Deploy a self-hosted VPN solution using [Headscale](https://github.com/juanfont/
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Internet                                 │
-└─────────────────────────────┬───────────────────────────────────┘
+└─────────────────────────┬───────────────────────────────────────┘
                               │
                     ┌─────────▼─────────┐
                     │      Traefik      │
@@ -30,16 +30,19 @@ Deploy a self-hosted VPN solution using [Headscale](https://github.com/juanfont/
                              │
         ┌────────────────────┼────────────────────┐
         │                    │                    │
-┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-│   Authelia    │◄───│   Headscale   │    │   Tailscale   │
+┌───────▼───────┐    ┌───────▼───────┐    ┌──────▼────────┐
+│   Authelia    │◄───│   Headscale   │    │  Tailscale    │
 │  (OIDC/2FA)   │    │ (Coordination)│    │   Router      │
-└───────────────┘    └───────────────┘    └───────┬───────┘
+└───────────────┘    └───────────────┘    │ (host network)│
+                                           └──────┬────────┘
                                                   │
                                           ┌───────▼───────┐
                                           │   Internal    │
                                           │   Networks    │
                                           └───────────────┘
 ```
+
+**Note**: The Tailscale router runs in host network mode for direct access to the Docker host's network interfaces, enabling efficient subnet routing without macvlan complexity.
 
 ## Requirements
 
@@ -118,12 +121,10 @@ ansible-playbook playbooks/site.yml --ask-vault-pass
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `tailscale_routes` | `["192.168.1.0/24"]` | Subnets to advertise via VPN |
-| `tailscale_router_ip` | `192.168.1.222` | Dedicated IP for router container |
-| `tailscale_router_subnet` | `192.168.1.0/24` | Subnet for macvlan network |
-| `tailscale_router_gateway` | `192.168.1.1` | Gateway for subnet routing |
-| `docker_host_interface` | `eth0` | Physical interface for macvlan |
-| `opnsense_ip` | `192.168.1.1` | DNS server for split DNS |
+| `headscale_authelia_tailscale_routes` | `["192.168.1.0/24"]` | Subnets to advertise via VPN |
+| `headscale_authelia_opnsense_ip` | `192.168.1.1` | Gateway/DNS server IP |
+
+**Note**: The Tailscale router container runs in `host` network mode for optimal routing performance. No macvlan configuration is required.
 
 ### Traefik Configuration
 
@@ -297,6 +298,32 @@ docker exec headscale_headscale-authelia wget -q -O- https://auth.example.com/.w
 1. Verify IP forwarding is enabled: `sysctl net.ipv4.ip_forward`
 2. Check router container logs: `docker logs tailscale-router_headscale-authelia`
 3. Verify routes are approved: `docker exec headscale_headscale-authelia headscale routes list`
+4. Ensure the container is using `network_mode: host` in docker-compose.yml
+
+### OPNsense Bind-Attack Errors (Internal Network Access)
+
+**Symptom**: When connecting to Headscale from within the same network as the server, OPNsense firewall logs show "bind-attack" errors and the connection fails.
+
+**Cause**: OPNsense's bind attack protection treats hairpin NAT (accessing a public IP from inside the network) as a potential DNS rebinding attack.
+
+**Solutions**:
+
+1. **Use Internal DNS (Recommended)**:
+   - Configure your internal DNS (e.g., OPNsense Unbound) to resolve `headscale.example.com` to the server's internal IP (e.g., `192.168.3.12`)
+   - External clients continue using public DNS/IP
+   - This is called "split-horizon DNS"
+
+2. **Disable Bind Attack Protection** (Less Secure):
+   - In OPNsense: Go to **Firewall → Settings → Advanced**
+   - Find "Block private networks and loopback addresses"
+   - Add an exception for your public domain
+   - **Warning**: Reduces security; only use if split DNS isn't feasible
+
+3. **Connect from External Network**:
+   - Use a mobile hotspot or external network for initial VPN enrollment
+   - Once connected via Tailscale VPN, internal access works normally
+
+**Best Practice**: Configure split-horizon DNS so internal clients resolve headscale domains to internal IPs, avoiding hairpin NAT entirely.
 
 ## Security Considerations
 

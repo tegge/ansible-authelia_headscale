@@ -110,9 +110,12 @@ services:
       authelia:
         condition: service_healthy
     volumes:
-      - "{{ headscale_authelia_volumes_dir }}/headscale/config:/etc/headscale"
-      - "{{ headscale_authelia_volumes_dir }}/headscale/lib:/var/lib/headscale"
-      - "{{ headscale_authelia_volumes_dir }}/headscale/run:/var/run/headscale"
+      - {{ headscale_authelia_volumes_dir }}/headscale/config:/etc/headscale
+      - {{ headscale_authelia_volumes_dir }}/headscale/lib:/var/lib/headscale
+      - {{ headscale_authelia_volumes_dir }}/headscale/run:/var/run/headscale
+{% if headscale_authelia_enable_step_ca_trust | default(false) | bool %}
+      - {{ headscale_authelia_certs_dir }}/step-ca-root.crt:/usr/local/share/ca-certificates/step-ca-root.crt:ro
+{% endif %}
     command: serve
     expose:
       - "{{ headscale_authelia_grpc_port }}"
@@ -142,10 +145,7 @@ services:
     container_name: tailscale-router_{{ headscale_authelia_stack_name }}
     hostname: docker-subnet-router
     restart: unless-stopped
-    networks:
-      tailscale_macvlan:
-        ipv4_address: {{ headscale_authelia_tailscale_router_ip }}
-      internal:
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -161,7 +161,7 @@ services:
       - TS_ROUTES={{ headscale_authelia_tailscale_routes | join(',') }}
       - TS_ACCEPT_ROUTES=true
       - TS_HOSTNAME=docker-subnet-router
-      - TS_EXTRA_ARGS=--login-server=http://headscale:8080 --advertise-tags=tag:router --snat-subnet-routes=false
+      - TS_EXTRA_ARGS=--login-server=http://127.0.0.1:8080
     depends_on:
       headscale:
         condition: service_healthy
@@ -178,15 +178,3 @@ networks:
 {% else %}
     external: true
 {% endif %}
-  
-  tailscale_macvlan:
-    driver: macvlan
-    driver_opts:
-      parent: {{ headscale_authelia_docker_host_interface }}
-    ipam:
-      config:
-        - subnet: {{ headscale_authelia_tailscale_router_subnet }}
-          gateway: {{ headscale_authelia_tailscale_router_gateway }}
-          ip_range: {{ headscale_authelia_tailscale_router_ip }}/32
-          aux_addresses:
-            router: {{ headscale_authelia_tailscale_router_gateway }}
